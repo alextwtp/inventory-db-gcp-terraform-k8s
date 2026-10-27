@@ -177,3 +177,4 @@ jobs:
             --region ${{ env.GCP_REGION }} \
             --platform managed \
             --allow-unauthenticated
+            --port 8080
