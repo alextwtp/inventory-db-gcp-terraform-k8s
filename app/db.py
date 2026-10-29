@@ -1,10 +1,10 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from app.secrets import get_secret
+#from app.secrets import get_secret
 
 # 1. Try to obtain the complete DATABASE_URL first.
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
 
 # 2. If no DATABASE_URL is found, then obtain DB parameters separately. 
 #    priority: environment variables/K8s -> secrets.py -> default values
