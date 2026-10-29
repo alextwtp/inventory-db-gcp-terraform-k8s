@@ -126,7 +126,8 @@ jobs:
           docker tag alextwtpyeh/inventory-db-gcp-terraform-k8s:v4.0.0 alextwtpyeh/inventory-db-gcp-terraform-k8s:latest
           docker push alextwtpyeh/inventory-db-gcp-terraform-k8s:v4.0.0
           docker push alextwtpyeh/inventory-db-gcp-terraform-k8s:latest
-  
+
+   
   #----------------------------------------------------------------------=-
   # Phase 3. Build and Push to GCP Artifact Registry & Deploy to Cloud Run
   #------------------------------------------------------------------------
