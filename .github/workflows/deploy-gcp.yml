@@ -20,7 +20,7 @@ on:
       - '.github/workflows/deploy-gcp.yml'
       - 'Dockerfile'
       - 'requirements.txt'
-  workflow_dispatch: # # supports manual triggering
+  workflow_dispatch: # supports manual triggering
 
 env:
   GCP_REGION: asia-east1                    # 台灣機房 (對標 AWS ap-northeast-1)
@@ -127,61 +127,50 @@ jobs:
           docker push alextwtpyeh/inventory-db-gcp-terraform-k8s:v4.0.0
           docker push alextwtpyeh/inventory-db-gcp-terraform-k8s:latest
 
-   
-  #----------------------------------------------------------------------=-
+  # ------------------------------------------------------------------------
   # Phase 3. Build and Push to GCP Artifact Registry & Deploy to Cloud Run
-  #------------------------------------------------------------------------
-name: Build and Deploy to GCP Cloud Run
-
-on:
-  push:
-    branches:
-      - main
-
-env:
-  GCP_REGION: asia-east1
-  GAR_REPOSITORY: my-app-repo
-  SERVICE_NAME: my-fastapi-service
-
-jobs:
+  # ------------------------------------------------------------------------
   deploy:
+    name: Build and Deploy to GCP Cloud Run
     runs-on: ubuntu-latest
+    needs: docker-build-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
-    # 1. Checkout 程式碼
-    - name: Checkout code
-      uses: actions/checkout@v3
+      # 1. Checkout 程式碼
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    # 2. 登入 GCP Authenticate
-    - name: Authenticate to GCP
-      uses: google-github-actions/auth@v1
-      with:
-        credentials_json: ${{secrets.GCP_SA_KEY}}
+      # 2. 登入 GCP Authenticate
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-    # 3. 設定 Cloud SDK
-    - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v1
+      # 3. 設定 Cloud SDK
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
 
-    # 4. 設定 Docker 認證登入 GCP Artifact Registry
-    - name: Authorize Docker for GCP
-      run: |
-        gcloud auth configure-docker ${{env.GCP_REGION}}-docker.pkg.dev --quiet
+      # 4. 設定 Docker 認證登入 GCP Artifact Registry
+      - name: Authorize Docker for GCP
+        run: |
+          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
 
-    # 5. Build, Tag & Push Docker Image 至 GAR
-    - name: Build and Push Docker Image
-      run: |
-        REGISTRY_URL="${{env.GCP_REGION}}-docker.pkg.dev/${{secrets.GCP_PROJECT_ID}}/${{env.GAR_REPOSITORY}}/my-app:latest"
-        docker build -t $REGISTRY_URL .
-        docker push $REGISTRY_URL
+      # 5. Build, Tag & Push Docker Image 至 GAR
+      - name: Build and Push Docker Image
+        run: |
+          REGISTRY_URL="${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/my-app:latest"
+          docker build -t $REGISTRY_URL .
+          docker push $REGISTRY_URL
 
-    # 6. Deploy to GCP Cloud Run
-    - name: Deploy to Cloud Run
-      run: |
-        REGISTRY_URL="${{env.GCP_REGION}}-docker.pkg.dev/${{secrets.GCP_PROJECT_ID}}/${{env.GAR_REPOSITORY}}/my-app:latest"
-        gcloud run deploy ${{env.SERVICE_NAME}} \
-          --image $REGISTRY_URL \
-          --region ${{env.GCP_REGION}} \
-          --platform managed \
-          --allow-unauthenticated \
-          --port 8080 \
-          --set-env-vars "DATABASE_URL=${{secrets.GCP_DATABASE_URL}}"
+      # 6. Deploy to GCP Cloud Run
+      - name: Deploy to Cloud Run
+        run: |
+          REGISTRY_URL="${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.GAR_REPOSITORY }}/my-app:latest"
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image $REGISTRY_URL \
+            --region ${{ env.GCP_REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --port 8080 \
+            --set-env-vars "DATABASE_URL=${{ secrets.GCP_DATABASE_URL }}"
